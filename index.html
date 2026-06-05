@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>3D Vector Space</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background: #06060f;
+    color: #e8e8f0;
+    font-family: 'Syne', sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* ── RIGHT FRAME ── */
+  .rf-frame {
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px 280px;
+    position: relative;
+  }
+
+  .rf-title        { animation: fadeUp 0.4s ease 0.05s both; }
+  .rf-subtitle     { animation: fadeUp 0.4s ease 0.1s both; }
+  .rf-controls     { animation: fadeUp 0.4s ease 0.15s both; }
+  .rf-detail-panel { animation: fadeUp 0.4s ease 0.3s both; }
+
+  .rf-title {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #7c6bff, #00d4aa, #ffd93d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .rf-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: #5a5a7a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .rf-examples {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+
+  .rf-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  .rf-controls-center {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .rf-controls-side {
+    flex: 1;
+    display: flex;
+  }
+  .rf-controls-side.right { justify-content: flex-end; }
+
+  .rf-btn {
+    background: #0e0e1c;
+    border: 1px solid #1e1e32;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: #6b6b8a;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rf-btn.active { border-color: #7c6bff; color: #7c6bff; background: rgba(124,107,255,0.08); }
+  #btnEdge.active  { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.08); }
+  #btnGridH.active { border-color: #60a5fa; color: #60a5fa; background: rgba(96,165,250,0.08); }
+  #btnGridV.active { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.08); }
+  #btnAxes.active  { border-color: #ff6b6b; color: #ff6b6b; background: rgba(255,107,107,0.08); }
+  #btnElev.active  { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.08); }
+
+  .rf-depth-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: #6b6b8a;
+  }
+  .rf-depth-btn {
+    background: #0e0e1c;
+    border: 1px solid #1e1e32;
+    border-radius: 6px;
+    width: 22px; height: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #6b6b8a;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .rf-depth-btn:hover { border-color: #7c6bff; color: #7c6bff; }
+  .rf-depth-val {
+    min-width: 16px;
+    text-align: center;
+    color: #e8e8f0;
+    font-size: 0.7rem;
+  }
+
+  #vc { display: block; cursor: grab; touch-action: none; width: 100%; flex: 1; min-height: 0; animation: fadeUp 0.45s ease 0.2s both; }
+  #vc:active { cursor: grabbing; }
+
+  .rf-bottom {
+    position: absolute;
+    bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    left: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rf-detail-panel {
+    position: relative;
+    bottom: unset;
+    left: unset;
+    right: unset;
+    background: #0e0e1c;
+    border: 1px solid rgba(0,212,170,0.25);
+    border-radius: 14px;
+    padding: 22px 24px;
+    min-height: 110px;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .rf-detail-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--rf-col, #00d4aa), transparent);
+    transition: background 0.3s ease;
+  }
+  .rf-detail-panel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 0% 0%, var(--rf-glow, rgba(0,212,170,0.07)) 0%, transparent 50%);
+    pointer-events: none;
+    transition: background 0.3s ease;
+  }
+  .rf-dp-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .rf-dp-toggle-all {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: #6b6b8a;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+  }
+  .rf-dp-toggle-all:hover { border-color: rgba(255,255,255,0.3); color: #e8e8f0; }
+
+  .rf-dp-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #6b6b8a;
+    margin-bottom: 8px;
+  }
+  .rf-dp-title { font-size: 1rem; font-weight: 700; color: #34d399; margin-bottom: 10px; }
+  .rf-dp-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #9090b0;
+    line-height: 1.7;
+  }
+  .rf-dp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .rf-dp-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── FLOW NODE STYLES (end-to-end flow) ── */
+  .lf-flow-nodes {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 5px;
+    flex-wrap: nowrap;
+    min-height: 52px;
+  }
+  .lf-fn-node {
+    flex: 1; min-width: 0;
+    background: #111118;
+    border-radius: 10px;
+    padding: 9px 5px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .lf-fn-node:hover { transform: translateY(-2px); border-color: var(--fn-col); }
+  .lf-fn-placeholder {
+    flex: 2; min-width: 0;
+    border: 1px dashed rgba(167,139,250,0.5);
+    border-radius: 10px;
+    padding: 9px 5px;
+    text-align: center;
+    cursor: pointer;
+    animation: pulse 1.8s ease-in-out infinite;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #c4b5fd;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(167,139,250,0.08);
+    box-shadow: 0 0 18px rgba(167,139,250,0.35), 0 0 36px rgba(167,139,250,0.15);
+  }
+  .lf-fn-placeholder:hover { border-color: rgba(167,139,250,0.9); color: #fff; background: rgba(167,139,250,0.12); box-shadow: 0 0 24px rgba(167,139,250,0.5), 0 0 48px rgba(167,139,250,0.22); }
+  .lf-fn-arrow { color: #6b6b8a; font-size: 0.75rem; flex-shrink: 0; align-self: center; }
+  .lf-fn-icon { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+  .lf-fn-label { font-family: 'JetBrains Mono', monospace; font-size: 0.52rem; color: var(--fn-col); display: block; letter-spacing: 0.2px; }
+
+  /* ── SHARED ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rf-frame">
+
+  <h1 class="rf-title">3D Vector Space</h1>
+  <p class="rf-subtitle">Drag to rotate · pinch or scroll to zoom</p>
+
+  <div class="rf-controls">
+    <div class="rf-controls-side" style="gap:4px;">
+      <button class="rf-btn"        id="btnEdge"  onclick="toggleEdge()">Edge</button>
+      <button class="rf-btn"        id="btnGridH" onclick="toggleGridH()">Grid X</button>
+      <button class="rf-btn"        id="btnGridV" onclick="toggleGridV()">Grid Y</button>
+      <button class="rf-btn"        id="btnAxes"  onclick="toggleAxes()">Axes</button>
+      <button class="rf-btn active" id="btnElev"  onclick="toggleGlow()">Halo</button>
+    </div>
+    <div class="rf-controls-center">
+      <div class="rf-depth-ctrl">
+        <span>link depth</span>
+        <button class="rf-depth-btn" onclick="window.changeDepth(-1)">−</button>
+        <span class="rf-depth-val" id="depthVal">2</span>
+        <button class="rf-depth-btn" onclick="window.changeDepth(1)">+</button>
+      </div>
+    </div>
+    <div class="rf-controls-side right" style="gap:4px;">
+      <button class="rf-btn"        id="btnTop"   onclick="setView('top')">Top View</button>
+      <button class="rf-btn"        id="btnFront" onclick="setView('front')">Front View</button>
+      <button class="rf-btn active" id="btnIso"   onclick="setView('iso')">Isometric</button>
+      <button class="rf-btn active" id="btnAuto"  onclick="toggleAuto()">Stop Rotate</button>
+      <button class="rf-btn"        id="btnMusic" onclick="window.toggleMusic()" style="font-size:0.85rem;padding:2px 7px;">🎹</button>
+    </div>
+  </div>
+
+  <canvas id="vc"></canvas>
+
+  <div class="rf-bottom">
+    <div class="rf-examples" id="rf-vector-btns"></div>
+    <div class="rf-detail-panel" style="border-color:rgba(52,211,153,0.25);--rf-col:#34d399;--rf-glow:rgba(52,211,153,0.07);">
+      <div class="rf-dp-panel-header">
+        <div class="rf-dp-label" id="rf-dp-label">general</div>
+        <button class="rf-dp-toggle-all" id="btn-toggle-all" onclick="window.toggleAllSpaces()">Select None</button>
+      </div>
+      <div class="rf-dp-title" id="rf-dp-title" style="color:#34d399;">🧭 General Vector Space</div>
+      <div class="rf-dp-text"  id="rf-dp-text">16 cluster slots across 4 horizontal planes and 4 quadrants. Each space can hold a group of related concepts.</div>
+      <div class="rf-dp-chips" id="rf-dp-chips"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+
+  // ── CANVAS SETUP ──
+  var canvas = document.getElementById('vc');
+  var ctx    = canvas.getContext('2d');
+  var W = 800, H = 500; // initial fallback, overridden after layout
+
+  // ── VIEW STATE ──
+  var zoom    = 290;
+  var rotX    = -0.058, rotY = 0.568;
+  var targetX = rotX,   targetY = rotY;
+  var autoRot = true;
+  var mx = 0, my = 0;
+
+  // ── TOGGLE STATE ──
+  var showGlow   = true;
+  var showEdge   = false;
+  var showAxes   = false;
+  var thickGridH = false;
+  var thickGridV = false;
+
+  // ── APPEARANCE CONFIG ──
+  var edgeThickOpacity = 0.18, edgeThickWidth = 2.0;
+  var gridThickOpacity = 0.18, gridThickWidth = 1.0;
+  var edgeThinOpacity  = 0.04, edgeThinWidth  = 1;
+  var gridThinOpacity  = 0.04, gridThinWidth  = 0.5;
+
+  // ── LOOKUP TABLES ──
+  var GAP_Y   = { 1: -0.75, 2: -0.25, 3: 0.25, 4: 0.75 };
+  var QUAD_XZ = { FR: [0.6, -0.6], FL: [-0.6, -0.6], BR: [0.6, 0.6], BL: [-0.6, 0.6] };
+  var SPACE_SCALE = { x: 0.38, y: 0.28, z: 0.38 };
+  var PROXIMITY_STYLE = {
+    1: { width: 2.5, opacity: 0.85, colorMix: 1.0  },
+    2: { width: 1.5, opacity: 0.50, colorMix: 0.60 },
+    3: { width: 0.8, opacity: 0.20, colorMix: 0.25 }
+  };
+
+  // ── GLOBAL STATE ──
+  var currentVectorIndex = 0;
+  var visibleSpaces = {};
+  var hovDot      = null;  // active dot for rendering (cursor or locked)
+  var cursorDot   = null;  // dot directly under cursor / touch
+  var lockedDotId = null;  // ID of frozen dot
+  var maxDepth    = 2;     // link traversal depth
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT REFERENCE — READ BEFORE ADDING OR MODIFYING ANY LINKS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //
+  // LINK CONVENTION: child → parent (upward hierarchy only)
+  //   Each dot links TO its direct parent concept, never downward.
+  //   Rule: if A "belongs to", "is a type of", or "refers to" B → A links to B.
+  //   Examples: Tokyo → Japan → Asia,  Sushi → Japanese → Japan,
+  //             Rising Sun → Japan,     Elon Musk → CEO, SpaceX, Mars, Earth
+  //
+  // WHY UPWARD ONLY:
+  //   buildHopMap() traverses links in BOTH directions at render time.
+  //   So defining A → B automatically makes B show A when hovered.
+  //   Defining both directions would create duplicate traversal and visual noise.
+  //
+  // PROXIMITY VALUES:
+  //   proximity: 1 = direct relationship (always use this unless explicitly discussed)
+  //   Higher values are reserved for future use (weaker / indirect relationships).
+  //
+  // DATA SHAPE:
+  //   Each dot: { id, label, px, py, pz, links: [{to: <dot-id>, proximity: 1}] }
+  //   px/py/pz are local offsets within the space box (-1 to 1 range).
+  //   Space box positions are defined in SPACE_SCALE: x:0.38, y:0.28, z:0.38
+  //
+  // defaultDotId:
+  //   Each vector has a defaultDotId — the dot that is auto-locked on load/switch.
+  //   Choose a well-connected hub dot that best represents the vector's theme.
+  //
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // ── VECTOR DATA ──
+  var VECTORS = [
+    {
+      id: 'general',
+      icon: '🧭',
+      color: '#00ccaa',
+      label: 'General',
+      defaultDotId: 'moon',
+      description: '16 cluster slots across 4 horizontal planes and 4 quadrants. Each space holds a group of related concepts.',
+      spaces: [
+        { id:'space-1', name:'Planets', color:'#ff4455',
+          box:{ x:-0.60, y:-0.25, z:0.60 },
+          legend:{ description:'Planets and moons of our solar system' },
+          dots:[
+            { id:'earth', label:'Earth', px:-0.5, py: 0.5, pz:-0.5, links:[{to:'elon',proximity:1},{to:'armstrong',proximity:1},{to:'britney',proximity:1},{to:'mj',proximity:1},{to:'napoleon',proximity:1},{to:'alexander',proximity:1},{to:'elizabeth',proximity:1},{to:'satya',proximity:1},{to:'sundar',proximity:1},{to:'tim',proximity:1}] },
+            { id:'mars',  label:'Mars',  px: 0.5, py: 0.5, pz:-0.5, links:[{to:'elon',proximity:1}] },
+            { id:'moon',  label:'Moon',  px: 0.0, py:-0.5, pz: 0.5, links:[{to:'armstrong',proximity:1}] }
+          ]
+        },
+        { id:'space-2', name:'Genders', color:'#0099ff', gap:1, quadrant:'FL',
+          box:{ x:-0.60, y:-0.75, z:-0.60 },
+          legend:{ description:'Root gender categories — branches into roles, family and royalty' },
+          dots:[
+            { id:'male',   label:'Male',   px:-0.5, py: 0.0, pz: 0.0, links:[{to:'father',proximity:1},{to:'brother',proximity:1},{to:'king',proximity:1},{to:'elon',proximity:1},{to:'armstrong',proximity:1},{to:'mj',proximity:1},{to:'napoleon',proximity:1},{to:'alexander',proximity:1},{to:'satya',proximity:1},{to:'sundar',proximity:1},{to:'tim',proximity:1}] },
+            { id:'female', label:'Female', px: 0.5, py: 0.0, pz: 0.0, links:[{to:'mother',proximity:1},{to:'sister',proximity:1},{to:'queen',proximity:1},{to:'britney',proximity:1},{to:'elizabeth',proximity:1}] }
+          ]
+        },
+        { id:'space-3', name:'Species', color:'#00bb55', box:{ x:-0.60, y:-0.25, z:-0.60 }, legend:{ description:'' }, dots:[] },
+        { id:'space-4', name:'Music',   color:'#aa22ee', box:{ x:0.60,  y:0.75,  z:-0.60 }, legend:{ description:'' }, dots:[] },
+        { id:'space-5', name:'Universe',color:'#dd22bb', box:{ x:0.60,  y:-0.75, z:0.60  }, legend:{ description:'' }, dots:[] },
+        { id:'space-6', name:'Relations', color:'#ff9f43', gap:2, quadrant:'FL',
+          box:{ x:0.60, y:-0.75, z:-0.60 },
+          legend:{ description:'Types of relationships — pairs, family bonds, symbolic and origin links' },
+          dots:[
+            { id:'father',  label:'Father',  px:-0.4, py: 0.3, pz:-0.3, links:[{to:'male',proximity:1},{to:'parent',proximity:1}] },
+            { id:'mother',  label:'Mother',  px: 0.4, py: 0.3, pz:-0.3, links:[{to:'female',proximity:1},{to:'parent',proximity:1}] },
+            { id:'brother', label:'Brother', px:-0.4, py:-0.3, pz: 0.3, links:[{to:'male',proximity:1},{to:'sibling',proximity:1}] },
+            { id:'sister',  label:'Sister',  px: 0.4, py:-0.3, pz: 0.3, links:[{to:'female',proximity:1},{to:'sibling',proximity:1}] }
+          ]
+        },
+        { id:'space-7',  name:'Fruits',     color:'#00ccdd', box:{ x:0.60,  y:0.25,  z:0.60  }, legend:{ description:'' }, dots:[] },
+        { id:'space-8',  name:'Countries',  color:'#ccdd00', box:{ x:-0.60, y:0.25,  z:0.60  }, legend:{ description:'' }, dots:[] },
+        { id:'space-9',  name:'Planets',    color:'#00ccaa', box:{ x:0.60,  y:-0.25, z:-0.60 }, legend:{ description:'' }, dots:[] },
+        { id:'space-10', name:'Roles', color:'#ff2299',
+          box:{ x:0.60, y:-0.25, z:0.60 },
+          legend:{ description:'Societal roles and titles across history and industry' },
+          dots:[
+            { id:'king',      label:'King',      px:-0.5, py: 0.3, pz:-0.3, links:[{to:'male',proximity:1},{to:'queen',proximity:1},{to:'napoleon',proximity:1},{to:'alexander',proximity:1}] },
+            { id:'queen',     label:'Queen',     px: 0.5, py: 0.3, pz:-0.3, links:[{to:'female',proximity:1},{to:'king',proximity:1},{to:'elizabeth',proximity:1}] },
+            { id:'ceo',       label:'CEO',       px:-0.4, py:-0.3, pz:-0.3, links:[{to:'elon',proximity:1},{to:'satya',proximity:1},{to:'sundar',proximity:1},{to:'tim',proximity:1}] },
+            { id:'astronaut', label:'Astronaut', px: 0.4, py:-0.3, pz: 0.3, links:[{to:'armstrong',proximity:1},{to:'elon',proximity:1}] },
+            { id:'singer',    label:'Singer',    px: 0.0, py: 0.0, pz: 0.4, links:[{to:'mj',proximity:1},{to:'britney',proximity:1}] }
+          ]
+        },
+        { id:'space-11', name:'Agencies', color:'#ffd700',
+          box:{ x:0.60, y:0.25, z:-0.60 },
+          legend:{ description:'Space agencies and organizations driving exploration' },
+          dots:[
+            { id:'spacex',    label:'SpaceX',    px:-0.4, py: 0.2, pz:-0.3, links:[{to:'elon',proximity:1},{to:'earth',proximity:1},{to:'mars',proximity:1},{to:'nasa',proximity:1}] },
+            { id:'nasa',      label:'NASA',      px: 0.4, py:-0.2, pz: 0.3, links:[{to:'spacex',proximity:1},{to:'earth',proximity:1},{to:'mars',proximity:1},{to:'moon',proximity:1},{to:'armstrong',proximity:1}] },
+            { id:'microsoft', label:'Microsoft', px:-0.4, py: 0.4, pz: 0.3, links:[{to:'satya',proximity:1}] },
+            { id:'google',    label:'Google',    px: 0.4, py: 0.4, pz: 0.3, links:[{to:'sundar',proximity:1}] },
+            { id:'apple',     label:'Apple',     px: 0.0, py: 0.4, pz:-0.4, links:[{to:'tim',proximity:1}] }
+          ]
+        },
+        { id:'space-12', name:'Bonds', color:'#4466ff',
+          box:{ x:-0.60, y:-0.75, z:0.60 },
+          legend:{ description:'Relationship bond types — couples, siblings and parent-child' },
+          dots:[
+            { id:'family',  label:'Family',  px: 0.0, py: 0.3, pz: 0.5, links:[{to:'sibling',proximity:1},{to:'parent',proximity:1}] },
+            { id:'sibling', label:'Sibling', px: 0.5, py: 0.0, pz: 0.0, links:[{to:'brother',proximity:1},{to:'sister',proximity:1},{to:'family',proximity:1}] },
+            { id:'parent',  label:'Parent',  px: 0.0, py:-0.3, pz: 0.0, links:[{to:'father',proximity:1},{to:'mother',proximity:1},{to:'family',proximity:1}] }
+          ]
+        },
+        { id:'space-13', name:'Satellites', color:'#7744ff', box:{ x:-0.60, y:0.25, z:-0.60 }, legend:{ description:'' }, dots:[] },
+        { id:'space-14', name:'Peoples', color:'#66cc00', gap:4, quadrant:'FL',
+          box:{ x:-0.60, y:0.75, z:0.60 },
+          legend:{ description:'Notable figures across science, music, history and exploration' },
+          dots:[
+            { id:'elon',      label:'Elon Musk',  px:-0.7, py: 0.7, pz:-0.5, links:[{to:'male',proximity:1},{to:'ceo',proximity:1},{to:'astronaut',proximity:1},{to:'mars',proximity:1},{to:'earth',proximity:1},{to:'spacex',proximity:1}] },
+            { id:'armstrong', label:'Armstrong',  px: 0.7, py: 0.7, pz:-0.5, links:[{to:'male',proximity:1},{to:'astronaut',proximity:1},{to:'moon',proximity:1},{to:'earth',proximity:1},{to:'nasa',proximity:1}] },
+            { id:'britney',   label:'Britney',    px:-0.7, py: 0.0, pz: 0.5, links:[{to:'female',proximity:1},{to:'earth',proximity:1},{to:'singer',proximity:1}] },
+            { id:'mj',        label:'M. Jackson', px: 0.7, py: 0.0, pz: 0.5, links:[{to:'male',proximity:1},{to:'earth',proximity:1},{to:'singer',proximity:1}] },
+            { id:'napoleon',  label:'Napoleon',   px:-0.5, py:-0.7, pz: 0.0, links:[{to:'male',proximity:1},{to:'king',proximity:1},{to:'earth',proximity:1}] },
+            { id:'satya',     label:'Satya',      px:-0.5, py: 0.5, pz: 0.3, links:[{to:'ceo',proximity:1},{to:'microsoft',proximity:1},{to:'earth',proximity:1}] },
+            { id:'sundar',    label:'Sundar',     px: 0.5, py: 0.5, pz: 0.3, links:[{to:'ceo',proximity:1},{to:'google',proximity:1},{to:'earth',proximity:1}] },
+            { id:'tim',       label:'Tim',        px: 0.0, py: 0.5, pz:-0.4, links:[{to:'ceo',proximity:1},{to:'apple',proximity:1},{to:'earth',proximity:1}] },
+            { id:'elizabeth', label:'Elizabeth',  px: 0.0, py:-0.7, pz:-0.5, links:[{to:'queen',proximity:1},{to:'female',proximity:1},{to:'earth',proximity:1}] },
+            { id:'alexander', label:'Alexander',  px: 0.5, py:-0.7, pz: 0.0, links:[{to:'male',proximity:1},{to:'king',proximity:1},{to:'earth',proximity:1}] }
+          ]
+        },
+        { id:'space-15', name:'space-15', color:'#ff3366', box:{ x:0.60,  y:0.75, z:0.60  }, legend:{ description:'' }, dots:[] },
+        { id:'space-16', name:'Symbols',  color:'#ff7722', box:{ x:-0.60, y:0.75, z:-0.60 }, legend:{ description:'' }, dots:[] }
+      ],
+      bridges: []
+    },
+    {
+      id: 'geography',
+      icon: '🌍',
+      color: '#00ccdd',
+      label: 'Geography',
+      defaultDotId: 'g-statue',
+      description: 'Exploring the physical and cultural layers of our world — from oceans and landmasses to cities, landmarks and symbols.',
+      spaces: [
+        { id:'geo-1', name:'Oceans', color:'#0099ff', box:{ x: 0.60, y:-0.75, z:-0.60 }, legend:{ description:'Major oceans of the world' },
+          dots:[
+            { id:'pacific',       label:'Pacific',       px:-0.5, py: 0.3, pz:-0.3, links:[{to:'ocean',proximity:1}] },
+            { id:'atlantic',      label:'Atlantic',      px: 0.5, py: 0.3, pz:-0.3, links:[{to:'ocean',proximity:1}] },
+            { id:'indian',        label:'Indian',        px:-0.5, py:-0.3, pz: 0.3, links:[{to:'ocean',proximity:1}] },
+            { id:'arctic',        label:'Arctic',        px: 0.5, py:-0.3, pz: 0.3, links:[{to:'ocean',proximity:1}] },
+            { id:'mediterranean', label:'Mediterranean', px:-0.3, py: 0.0, pz:-0.4, links:[{to:'sea',proximity:1}] },
+            { id:'arabian',       label:'Arabian Sea',   px: 0.3, py: 0.0, pz:-0.4, links:[{to:'sea',proximity:1}] },
+            { id:'bay-of-bengal', label:'Bay of Bengal', px: 0.0, py:-0.4, pz:-0.3, links:[{to:'sea',proximity:1}] }
+          ]
+        },
+        { id:'geo-2', name:'Land', color:'#66cc00', box:{ x:-0.60, y:-0.75, z: 0.60 }, legend:{ description:'Major landmasses and continents' },
+          dots:[
+            { id:'ocean',    label:'Ocean',    px: 0.0, py: 0.5, pz: 0.0, links:[{to:'pacific',proximity:1},{to:'atlantic',proximity:1},{to:'indian',proximity:1},{to:'arctic',proximity:1}] },
+            { id:'sea',      label:'Sea',      px: 0.0, py: 0.3, pz: 0.5, links:[] },
+            { id:'asia',     label:'Asia',     px:-0.4, py: 0.0, pz:-0.3, links:[{to:'land',proximity:1}] },
+            { id:'africa',   label:'Africa',   px: 0.4, py: 0.0, pz:-0.3, links:[{to:'land',proximity:1}] },
+            { id:'europe',   label:'Europe',   px:-0.4, py:-0.3, pz: 0.3, links:[{to:'land',proximity:1}] },
+            { id:'americas', label:'Americas', px: 0.4, py:-0.3, pz: 0.3, links:[{to:'land',proximity:1}] },
+            { id:'land',     label:'Land',     px: 0.0, py:-0.5, pz: 0.0, links:[{to:'asia',proximity:1},{to:'africa',proximity:1},{to:'europe',proximity:1},{to:'americas',proximity:1}] }
+          ]
+        },
+        { id:'geo-3', name:'Countries', color:'#ff4455', box:{ x: 0.60, y:-0.25, z: 0.60 }, legend:{ description:'Nations of the world' },
+          dots:[
+            { id:'g-usa',    label:'USA',    px:-0.5, py: 0.3, pz:-0.3, links:[{to:'americas',proximity:1},{to:'g-newyork',proximity:1},{to:'uncle-sam',proximity:1},{to:'pacific',proximity:1},{to:'atlantic',proximity:1}] },
+            { id:'g-france', label:'France', px: 0.5, py: 0.3, pz:-0.3, links:[{to:'europe',proximity:1},{to:'atlantic',proximity:1}] },
+            { id:'g-china',  label:'China',  px:-0.5, py:-0.3, pz: 0.3, links:[{to:'asia',proximity:1},{to:'pacific',proximity:1}] },
+            { id:'g-japan',  label:'Japan',  px: 0.5, py:-0.3, pz: 0.3, links:[{to:'asia',proximity:1},{to:'pacific',proximity:1}] },
+            { id:'g-italy',  label:'Italy',  px: 0.0, py: 0.3, pz: 0.3, links:[{to:'europe',proximity:1},{to:'mediterranean',proximity:1}] },
+            { id:'g-mexico', label:'Mexico', px:-0.3, py: 0.0, pz: 0.3, links:[{to:'americas',proximity:1},{to:'atlantic',proximity:1}] },
+            { id:'g-india',  label:'India',  px: 0.3, py: 0.0, pz:-0.3, links:[{to:'asia',proximity:1},{to:'indian',proximity:1},{to:'arabian',proximity:1},{to:'bay-of-bengal',proximity:1}] }
+          ]
+        },
+        { id:'geo-4', name:'Cities', color:'#ffd700', box:{ x:-0.60, y:-0.25, z:-0.60 }, legend:{ description:'Major cities of the world' },
+          dots:[
+            { id:'g-newyork',    label:'New York',    px:-0.5, py: 0.3, pz:-0.3, links:[{to:'g-usa',proximity:1},{to:'g-bigapple',proximity:1}] },
+            { id:'g-paris',      label:'Paris',       px: 0.5, py: 0.3, pz:-0.3, links:[{to:'g-france',proximity:1}] },
+            { id:'g-beijing',    label:'Beijing',     px:-0.5, py:-0.3, pz: 0.3, links:[{to:'g-china',proximity:1}] },
+            { id:'g-tokyo',      label:'Tokyo',       px: 0.5, py:-0.3, pz: 0.3, links:[{to:'g-japan',proximity:1}] },
+            { id:'g-rome',       label:'Rome',        px: 0.0, py:-0.3, pz:-0.4, links:[{to:'g-italy',proximity:1}] },
+            { id:'g-agra',       label:'Agra',        px:-0.3, py: 0.3, pz: 0.4, links:[{to:'g-india',proximity:1}] },
+            { id:'g-mexicocity', label:'Mexico City', px: 0.4, py:-0.3, pz:-0.4, links:[{to:'g-mexico',proximity:1}] }
+          ]
+        },
+        { id:'geo-5', name:'Landmarks', color:'#ff9f43', box:{ x: 0.60, y: 0.25, z:-0.60 }, legend:{ description:'Famous landmarks around the world' },
+          dots:[
+            { id:'g-eiffel',      label:'Eiffel Tower',    px:-0.4, py: 0.3, pz:-0.3, links:[{to:'g-paris',proximity:1}] },
+            { id:'g-greatwall',   label:'Great Wall',      px: 0.4, py: 0.3, pz:-0.3, links:[{to:'g-china',proximity:1}] },
+            { id:'g-statue',      label:'Statue Liberty',  px:-0.4, py:-0.3, pz: 0.3, links:[{to:'g-newyork',proximity:1},{to:'g-usa',proximity:1}] },
+            { id:'g-colosseum',   label:'Colosseum',       px: 0.4, py:-0.3, pz: 0.3, links:[{to:'g-rome',proximity:1}] },
+            { id:'g-tajmahal',    label:'Taj Mahal',       px:-0.3, py: 0.0, pz: 0.4, links:[{to:'g-agra',proximity:1}] },
+            { id:'g-teotihuacan', label:'Teotihuacan',     px: 0.4, py: 0.3, pz: 0.0, links:[{to:'g-mexicocity',proximity:1}] }
+          ]
+        },
+        { id:'geo-6', name:'Analogies', color:'#f472b6', box:{ x:-0.60, y: 0.25, z: 0.60 }, legend:{ description:'National symbols and nicknames' },
+          dots:[
+            { id:'g-bigapple',       label:'Big Apple',     px:-0.4, py: 0.3, pz:-0.3, links:[{to:'g-newyork',proximity:1}] },
+            { id:'city-of-lights',   label:'City of Lights',px: 0.4, py: 0.3, pz:-0.3, links:[{to:'g-paris',proximity:1}] },
+            { id:'g-dragon',         label:'Dragon',        px:-0.5, py:-0.4, pz:-0.5, links:[{to:'g-china',proximity:1}] },
+            { id:'uncle-sam',        label:'Uncle Sam',     px: 0.4, py:-0.3, pz: 0.3, links:[{to:'g-usa',proximity:1}] },
+            { id:'g-rising',         label:'Rising Sun',    px: 0.0, py:-0.4, pz: 0.5, links:[{to:'g-japan',proximity:1}] },
+            { id:'g-boot',           label:'The Boot',      px: 0.5, py:-0.4, pz:-0.5, links:[{to:'g-italy',proximity:1}] },
+            { id:'g-populous',       label:'Populous',      px:-0.5, py: 0.4, pz: 0.5, links:[{to:'g-india',proximity:1}] },
+            { id:'g-aztec',          label:'Land of Aztecs',px: 0.4, py: 0.0, pz: 0.3, links:[{to:'g-mexico',proximity:1}] }
+          ]
+        },
+        { id:'geo-7', name:'Cuisines', color:'#ff7722', box:{ x: 0.60, y: 0.75, z: 0.60 }, legend:{ description:'World cuisines and their origins' },
+          dots:[
+            { id:'mexican',        label:'Mexican',  px:-0.4, py: 0.3, pz:-0.3, links:[{to:'g-mexico',proximity:1}] },
+            { id:'italian',        label:'Italian',  px: 0.4, py: 0.3, pz:-0.3, links:[{to:'g-italy',proximity:1}] },
+            { id:'japanese',       label:'Japanese', px:-0.4, py:-0.3, pz: 0.3, links:[{to:'g-japan',proximity:1}] },
+            { id:'indian-cuisine', label:'Indian',   px: 0.4, py:-0.3, pz: 0.3, links:[{to:'g-india',proximity:1}] },
+            { id:'chinese',        label:'Chinese',  px: 0.0, py: 0.0, pz:-0.4, links:[{to:'g-china',proximity:1}] }
+          ]
+        },
+        { id:'geo-8', name:'Foods', color:'#aa22ee', box:{ x:-0.60, y: 0.75, z:-0.60 }, legend:{ description:'Iconic dishes from around the world' },
+          dots:[
+            { id:'g-sushi',    label:'Sushi',    px:-0.4, py: 0.3, pz:-0.3, links:[{to:'japanese',proximity:1}] },
+            { id:'g-pizza',    label:'Pizza',    px: 0.4, py: 0.3, pz:-0.3, links:[{to:'italian',proximity:1}] },
+            { id:'g-taco',     label:'Taco',     px:-0.4, py:-0.3, pz: 0.3, links:[{to:'mexican',proximity:1}] },
+            { id:'g-biriyani', label:'Biriyani', px: 0.4, py:-0.3, pz: 0.3, links:[{to:'indian-cuisine',proximity:1}] },
+            { id:'g-dimsum',   label:'Dim Sum',  px: 0.0, py: 0.0, pz:-0.4, links:[{to:'chinese',proximity:1}] }
+          ]
+        }
+      ],
+      bridges: []
+    }
+  ];
+
+  // ── HELPERS ──
+  function hexToRgb(hex) {
+    return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);
+  }
+  function blendRgb(c1, c2) {
+    var r1=parseInt(c1.slice(1,3),16), g1=parseInt(c1.slice(3,5),16), b1=parseInt(c1.slice(5,7),16);
+    var r2=parseInt(c2.slice(1,3),16), g2=parseInt(c2.slice(3,5),16), b2=parseInt(c2.slice(5,7),16);
+    return Math.round((r1+r2)/2)+','+Math.round((g1+g2)/2)+','+Math.round((b1+b2)/2);
+  }
+  function spaceCenter(space) { return space.box; }
+
+  function project(x, y, z) {
+    var cosY=Math.cos(rotY), sinY=Math.sin(rotY);
+    var x1=x*cosY - z*sinY, z1=x*sinY + z*cosY;
+    var cosX=Math.cos(rotX), sinX=Math.sin(rotX);
+    var y2=y*cosX - z1*sinX, z2=y*sinX + z1*cosX;
+    var sc=zoom/(zoom*0.4 + z2*zoom*0.3 + zoom);
+    return { sx: W/2 + x1*zoom*sc, sy: H/2 - y2*zoom*sc, depth: z2, sc: sc };
+  }
+
+  // ── BUILD POINTS ──
+  function buildPoints(vector) {
+    var pts=[], dotMap={};
+    vector.spaces.forEach(function(space) {
+      if (visibleSpaces[space.id] === false) return;
+      var c = spaceCenter(space);
+      space.dots.forEach(function(dot) {
+        var wx=c.x+dot.px*SPACE_SCALE.x, wy=c.y+dot.py*SPACE_SCALE.y, wz=c.z+dot.pz*SPACE_SCALE.z;
+        var p=project(wx,wy,wz);
+        var pt={ id:dot.id, label:dot.label, wx:wx, wy:wy, wz:wz, color:space.color, space:space, sx:p.sx, sy:p.sy, depth:p.depth, sc:p.sc, links:dot.links||[], r:7 };
+        pts.push(pt); dotMap[dot.id]=pt;
+      });
+    });
+    pts.sort(function(a,b){ return a.depth-b.depth; });
+    return { pts:pts, dotMap:dotMap };
+  }
+
+  // ── RENDER: HALOS ──
+  function renderHalos(vector) {
+    if (!showGlow) return;
+    vector.spaces.forEach(function(space) {
+      if (!space.dots.length) return;
+      if (visibleSpaces[space.id] === false) return;
+      var c=spaceCenter(space), p=project(c.x,c.y,c.z), rgb=hexToRgb(space.color);
+      var g=ctx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,100);
+      g.addColorStop(0,'rgba('+rgb+',0.12)'); g.addColorStop(1,'rgba('+rgb+',0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.sx,p.sy,100,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  // ── RENDER: DOTS ──
+  function buildHopMap(dotMap) {
+    if (!hovDot) return null;
+    var visited={}; visited[hovDot.id]=0;
+    var queue=[hovDot.id];
+    while (queue.length) {
+      var cur=queue.shift(), dot=dotMap[cur];
+      if (!dot) continue;
+      var nextDepth=visited[cur]+1;
+      (dot.links||[]).forEach(function(l){ if (visited[l.to]===undefined && dotMap[l.to]){ visited[l.to]=nextDepth; queue.push(l.to); } });
+      Object.keys(dotMap).forEach(function(id){
+        if (visited[id]!==undefined) return;
+        (dotMap[id].links||[]).forEach(function(l){ if (l.to===cur && visited[id]===undefined){ visited[id]=nextDepth; queue.push(id); } });
+      });
+    }
+    return visited;
+  }
+
+  function renderDots(pts, hopMap) {
+    pts.forEach(function(c) {
+      var isH=hovDot && hovDot.id===c.id;
+      var depth=hopMap ? hopMap[c.id] : undefined;
+      var alpha=!hopMap ? 1.0 : depth===undefined ? 0.08 : depth===0 ? 1.0 : depth<=maxDepth ? (depth===1 ? 0.9 : 0.5) : 0.08;
+      ctx.globalAlpha=alpha;
+      var sr=c.r*(0.65+c.sc*0.5), rgb=hexToRgb(c.color);
+      if (isH){ ctx.beginPath(); ctx.arc(c.sx,c.sy,sr+12,0,Math.PI*2); ctx.fillStyle='rgba('+rgb+',0.15)'; ctx.fill(); }
+      ctx.beginPath(); ctx.arc(c.sx,c.sy,sr+4,0,Math.PI*2); ctx.fillStyle='rgba('+rgb+',0.18)'; ctx.fill();
+      var g=ctx.createRadialGradient(c.sx-sr*0.3,c.sy-sr*0.3,0,c.sx,c.sy,sr);
+      g.addColorStop(0,'rgba(255,255,255,0.95)'); g.addColorStop(0.35,c.color); g.addColorStop(1,'rgba('+rgb+',0.7)');
+      ctx.beginPath(); ctx.arc(c.sx,c.sy,sr,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+      ctx.font=(isH?'600 12px':'500 10px')+' JetBrains Mono,monospace';
+      ctx.fillStyle=isH ? c.color : c.color+'cc';
+      ctx.fillText(c.label, c.sx+sr+4, c.sy+4);
+      ctx.globalAlpha=1.0;
+    });
+  }
+
+  // ── RENDER: HOVER BRIDGE LINES ──
+  function renderHoverBridges(vector, dotMap, hopMap) {
+    if (!hovDot) return;
+    if (!hopMap || maxDepth===0) return;
+    var drawn={};
+    Object.keys(dotMap).forEach(function(id) {
+      var dot=dotMap[id];
+      (dot.links||[]).forEach(function(link) {
+        var depthA=hopMap[id], depthB=hopMap[link.to];
+        if (depthA===undefined || depthB===undefined) return;
+        if (Math.abs(depthA-depthB)!==1) return;
+        if (Math.max(depthA,depthB)>maxDepth) return;
+        var edgeKey=[id,link.to].sort().join('|');
+        if (drawn[edgeKey]) return;
+        drawn[edgeKey]=true;
+        var a=dotMap[id], b=dotMap[link.to];
+        if (!a||!b) return;
+        var depth=Math.max(depthA,depthB);
+        drawBridgeLine(a,b,depth,depth>1);
+      });
+    });
+  }
+
+  function drawBridgeLine(a, b, depth, isDotted) {
+    var rgb=(a.space===b.space) ? hexToRgb(a.color) : blendRgb(a.color,b.color);
+    var opacity=depth===1?0.85:depth===2?0.45:0.2;
+    var lw=depth===1?2.0:depth===2?1.2:0.8;
+    ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy);
+    ctx.strokeStyle='rgba('+rgb+','+opacity+')'; ctx.lineWidth=lw;
+    ctx.setLineDash(isDotted?[4,4]:[]); ctx.stroke(); ctx.setLineDash([]);
+    var mx=(a.sx+b.sx)/2, my=(a.sy+b.sy)/2, r=9;
+    ctx.beginPath(); ctx.arc(mx,my,r,0,Math.PI*2); ctx.fillStyle='rgba(14,14,28,0.92)'; ctx.fill();
+    ctx.strokeStyle='rgba('+rgb+',0.7)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='rgba('+rgb+',1)'; ctx.font='600 9px JetBrains Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(depth),mx,my);
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  }
+
+  // ── RENDER: TOOLTIP ──
+  function renderTooltip(vector, dotMap) {
+    if (!cursorDot) return;
+    var line1='"'+hovDot.label+'"';
+    var line2=hovDot.space.name+(hovDot.space.legend.description?' — '+hovDot.space.legend.description:'');
+    ctx.font='700 12px Syne,sans-serif';
+    var w1=ctx.measureText(line1).width;
+    ctx.font='10px JetBrains Mono,monospace';
+    var w2=ctx.measureText(line2).width;
+    var boxW=Math.max(w1,w2)+20, boxH=42;
+    var tx=W-boxW-10, ty=H-boxH-10;
+    ctx.fillStyle='rgba(14,14,28,0.92)'; ctx.beginPath(); ctx.rect(tx,ty,boxW,boxH); ctx.fill();
+    ctx.strokeStyle=hovDot.color+'88'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=hovDot.color; ctx.font='700 12px Syne,sans-serif'; ctx.fillText(line1,tx+8,ty+16);
+    ctx.fillStyle='#9090b0'; ctx.font='10px JetBrains Mono,monospace'; ctx.fillText(line2,tx+8,ty+30);
+  }
+
+  // ── RENDER: GRID ──
+  function drawGrid() {
+    var colH=thickGridH?'rgba(255,255,255,'+gridThickOpacity+')':'rgba(255,255,255,'+gridThinOpacity+')';
+    var lwH=thickGridH?gridThickWidth:gridThinWidth;
+    var colV=thickGridV?'rgba(255,255,255,'+gridThickOpacity+')':'rgba(255,255,255,'+gridThinOpacity+')';
+    var lwV=thickGridV?gridThickWidth:gridThinWidth;
+    var steps=[-1,-0.5,0,0.5,1];
+    function line(x1,y1,z1,x2,y2,z2,col,lw){
+      var p1=project(x1,y1,z1), p2=project(x2,y2,z2);
+      ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy);
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]); ctx.stroke();
+    }
+    steps.forEach(function(fy){ steps.forEach(function(s){ line(-1,fy,s,1,fy,s,colH,lwH); line(s,fy,-1,s,fy,1,colH,lwH); }); });
+    steps.forEach(function(fx){ steps.forEach(function(s){ line(fx,-1,s,fx,1,s,colV,lwV); line(fx,s,-1,fx,s,1,colV,lwV); }); });
+  }
+
+  // ── RENDER: CUBE ──
+  function drawCube() {
+    var col=showEdge?'rgba(255,255,255,'+edgeThickOpacity+')':'rgba(255,255,255,'+edgeThinOpacity+')';
+    var lw=showEdge?edgeThickWidth:edgeThinWidth;
+    var e=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(function(ed){
+      var p1=project(e[ed[0]][0],e[ed[0]][1],e[ed[0]][2]), p2=project(e[ed[1]][0],e[ed[1]][1],e[ed[1]][2]);
+      ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy);
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]); ctx.stroke();
+    });
+  }
+
+  // ── RENDER: AXES ──
+  function drawAxes() {
+    var op=showAxes?'0.7':'0.12', lw=showAxes?2:0.5, fop=showAxes?'0.9':'0.15';
+    var pairs=[[-1,0,0,1.15,0,0,'rgba(255,100,100,','X'],[0,-1,0,0,1.15,0,'rgba(100,255,150,','Y'],[0,0,-1,0,0,1.15,'rgba(100,150,255,','Z']];
+    pairs.forEach(function(ax){
+      var p1=project(ax[0],ax[1],ax[2]), p2=project(ax[3],ax[4],ax[5]);
+      ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy);
+      ctx.strokeStyle=ax[6]+op+')'; ctx.lineWidth=lw; ctx.setLineDash([]); ctx.stroke();
+      ctx.fillStyle=ax[6]+fop+')'; ctx.font=(showAxes?'bold ':'')+' 10px JetBrains Mono,monospace';
+      ctx.fillText(ax[7],p2.sx+4,p2.sy+4);
+    });
+  }
+
+  // ── RENDER VECTOR SPACE ──
+  function renderVectorSpace(index) {
+    currentVectorIndex = index;
+    var vector=VECTORS[index], result=buildPoints(vector), pts=result.pts, dotMap=result.dotMap;
+    cursorDot=null;
+    if (!drag) pts.forEach(function(c){ var dx=mx-c.sx, dy=my-c.sy; if (Math.sqrt(dx*dx+dy*dy)<c.r*1.8+5) cursorDot=c; });
+    hovDot=cursorDot||(lockedDotId ? dotMap[lockedDotId]||null : null);
+    var hopMap=buildHopMap(dotMap);
+    renderHalos(vector);
+    renderHoverBridges(vector,dotMap,hopMap);
+    renderDots(pts,hopMap);
+    renderTooltip(vector,dotMap);
+    if (showAxes){
+      ctx.font='10px JetBrains Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.25)';
+      ctx.fillText('rotX:'+rotX.toFixed(3)+'  rotY:'+rotY.toFixed(3)+'  zoom:'+Math.round(zoom),10,H-10);
+    }
+  }
+
+  // ── MAIN LOOP ──
+  function loop() {
+    if (autoRot){ rotY+=0.006; targetY=rotY; }
+    else { rotX+=(targetX-rotX)*0.08; rotY+=(targetY-rotY)*0.08; }
+    ctx.clearRect(0,0,W,H);
+    drawGrid(); drawCube(); drawAxes();
+    renderVectorSpace(currentVectorIndex);
+    requestAnimationFrame(loop);
+  }
+
+  // ── DYNAMIC BUTTONS ──
+  function renderButtons() {
+    var container=document.getElementById('rf-vector-btns');
+    container.innerHTML=VECTORS.map(function(v,i){
+      var isActive=i===currentVectorIndex, col=v.color||'#7c6bff';
+      var style=isActive?'border-color:'+col+';color:'+col+';background:rgba('+hexToRgb(col)+',0.08);':'';
+      return '<button class="rf-btn" style="'+style+'" onclick="window.selectVector('+i+')">'+v.icon+' '+v.label+'</button>';
+    }).join('');
+  }
+
+  function updateVectorPanel(index) {
+    var v=VECTORS[index], col=v.color||'#7c6bff', rgb=hexToRgb(col);
+    var rfp=document.querySelector('.rf-detail-panel');
+    rfp.style.setProperty('--rf-col',col); rfp.style.setProperty('--rf-glow','rgba('+rgb+',0.07)');
+    rfp.style.borderColor='rgba('+rgb+',0.25)';
+    document.getElementById('rf-dp-label').textContent=v.id;
+    var anyOn=v.spaces.some(function(s){ return visibleSpaces[s.id]!==false; });
+    var btn=document.getElementById('btn-toggle-all');
+    if (btn) btn.textContent=anyOn?'Select None':'Select All';
+    document.getElementById('rf-dp-title').style.color=col;
+    document.getElementById('rf-dp-title').textContent=v.icon+' '+v.label;
+    document.getElementById('rf-dp-text').textContent=v.description;
+    var populated=v.spaces.filter(function(s){ return s.dots.length>0; }).sort(function(a,b){
+      if (a.box.y!==b.box.y) return a.box.y-b.box.y;
+      if (a.box.x!==b.box.x) return a.box.x-b.box.x;
+      return a.box.z-b.box.z;
+    });
+    document.getElementById('rf-dp-chips').innerHTML=populated.map(function(s){
+      var on=visibleSpaces[s.id]!==false, rgb=hexToRgb(s.color);
+      var bg=on?'rgba('+rgb+',0.12)':'transparent';
+      var bd=on?'1px solid rgba('+rgb+',0.4)':'1px solid rgba(255,255,255,0.08)';
+      var col=on?s.color:'#3a3a55';
+      return '<span class="rf-dp-chip" onclick="window.toggleSpace(&apos;'+s.id+'&apos;)" style="background:'+bg+';border:'+bd+';color:'+col+';cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.2s ease;">'+
+             '<span style="width:6px;height:6px;border-radius:50%;background:'+col+';flex-shrink:0;"></span>'+s.name+'</span>';
+    }).join('');
+  }
+
+  // ── PUBLIC API ──
+  window.toggleAllSpaces = function() {
+    var v=VECTORS[currentVectorIndex], anyOn=v.spaces.some(function(s){ return visibleSpaces[s.id]!==false; });
+    v.spaces.forEach(function(s){ visibleSpaces[s.id]=!anyOn; });
+    document.getElementById('btn-toggle-all').textContent=anyOn?'Select All':'Select None';
+    updateVectorPanel(currentVectorIndex);
+  };
+  window.changeDepth = function(delta) {
+    maxDepth=Math.max(0,Math.min(6,maxDepth+delta));
+    document.getElementById('depthVal').textContent=maxDepth;
+  };
+  window.swapSpaces = function(idA,idB) {
+    var v=VECTORS[currentVectorIndex];
+    var sa=v.spaces.filter(function(s){ return s.id===idA; })[0];
+    var sb=v.spaces.filter(function(s){ return s.id===idB; })[0];
+    if (!sa||!sb) return;
+    var tmp=sa.box; sa.box=sb.box; sb.box=tmp;
+  };
+  window.toggleSpace = function(spaceId) {
+    visibleSpaces[spaceId]=!visibleSpaces[spaceId];
+    updateVectorPanel(currentVectorIndex);
+  };
+  window.selectVector = function(index) {
+    currentVectorIndex=index; visibleSpaces={};
+    VECTORS[index].spaces.forEach(function(s){ visibleSpaces[s.id]=true; });
+    lockedDotId=VECTORS[index].defaultDotId||null;
+    renderButtons(); updateVectorPanel(index);
+  };
+
+  // ── VIEW / TOGGLE CONTROLS ──
+  window.setView = function(v) {
+    autoRot=false;
+    document.getElementById('btnAuto').classList.remove('active');
+    document.getElementById('btnAuto').textContent='Auto Rotate';
+    ['btnTop','btnFront','btnIso'].forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+    document.getElementById('btn'+v.charAt(0).toUpperCase()+v.slice(1)).classList.add('active');
+    if (v==='top')   { targetX=-1.57; targetY=0; }
+    if (v==='front') { targetX=0;     targetY=0; }
+    if (v==='iso')   { targetX=-0.058; targetY=0.568; zoom=290; }
+  };
+  window.toggleAuto  = function(){ autoRot=!autoRot; document.getElementById('btnAuto').classList.toggle('active',autoRot); document.getElementById('btnAuto').textContent=autoRot?'Stop Rotate':'Auto Rotate'; };
+
+  var _audioStart = 156, _audioEnd = 215, _xfadeDur = 5;
+  var _audioA = new Audio('./assets/intersteller-no-time-for-caution.mp3');
+  var _audioB = new Audio('./assets/intersteller-no-time-for-caution.mp3');
+  var _audioMissing = false;
+  _audioA.addEventListener('error', function() { _audioMissing = true; });
+  var _active = _audioA, _standby = _audioB, _crossfading = false;
+
+  function driveXfade() {
+    var t = _active.currentTime;
+    var xStart = _audioEnd - _xfadeDur;
+
+    if (!_crossfading && t >= xStart) {
+      _crossfading = true;
+      _standby.currentTime = _audioStart;
+      _standby.volume = 0;
+      _standby.play();
+    }
+
+    if (_crossfading) {
+      var progress = Math.min(1, Math.max(0, (t - xStart) / _xfadeDur));
+      _active.volume  = 1 - progress;
+      _standby.volume = progress;
+      if (progress >= 1) {
+        _active.pause();
+        _active.volume = 1;
+        var tmp = _active; _active = _standby; _standby = tmp;
+        _crossfading = false;
+      }
+    }
+  }
+
+  (function() {
+    function makeHandler(inst) {
+      return function() { if (_active === inst) driveXfade(); };
+    }
+    _audioA.addEventListener('timeupdate', makeHandler(_audioA));
+    _audioB.addEventListener('timeupdate', makeHandler(_audioB));
+  })();
+
+  function _loadAudioFile(file) {
+    var url = URL.createObjectURL(file);
+    _audioMissing = false;
+    _crossfading = false;
+    _active = _audioA; _standby = _audioB;
+    _audioA.src = url; _audioB.src = url;
+    _audioA.load(); _audioB.load();
+    _audioA.addEventListener('canplay', function onReady() {
+      _audioA.removeEventListener('canplay', onReady);
+      _active.currentTime = _audioStart;
+      _active.volume = 1;
+      var p = _active.play();
+      if (p && p.then) {
+        p.then(function() {
+          document.getElementById('btnMusic').classList.add('active');
+        }).catch(function() {});
+      } else {
+        document.getElementById('btnMusic').classList.add('active');
+      }
+    });
+  }
+
+  window.toggleMusic = function() {
+    if (_audioMissing) {
+      var input = document.createElement('input');
+      input.type = 'file'; input.accept = 'audio/*,audio/mpeg,audio/mp3,.mp3,.m4a,.aac,.wav';
+      input.onchange = function(e) { if (e.target.files[0]) _loadAudioFile(e.target.files[0]); };
+      input.click();
+      return;
+    }
+    if (_active.paused) {
+      _active.currentTime = _audioStart;
+      _active.volume = 1;
+      _crossfading = false;
+      _active.play();
+    } else {
+      _active.pause();
+      _standby.pause();
+      _active.volume = 1; _standby.volume = 0;
+      _crossfading = false;
+    }
+    document.getElementById('btnMusic').classList.toggle('active', !_active.paused);
+  };
+  window.toggleEdge  = function(){ showEdge=!showEdge;     document.getElementById('btnEdge').classList.toggle('active',showEdge); };
+  window.toggleGridH = function(){ thickGridH=!thickGridH; document.getElementById('btnGridH').classList.toggle('active',thickGridH); };
+  window.toggleGridV = function(){ thickGridV=!thickGridV; document.getElementById('btnGridV').classList.toggle('active',thickGridV); };
+  window.toggleAxes  = function(){ showAxes=!showAxes;     document.getElementById('btnAxes').classList.toggle('active',showAxes); };
+  window.toggleGlow  = function(){ showGlow=!showGlow;     document.getElementById('btnElev').classList.toggle('active',showGlow); };
+
+  // ── INPUT: MOUSE ──
+  var drag=false, lx=0, ly=0;
+  canvas.addEventListener('mousedown', function(e){
+    drag=true; lx=e.clientX; ly=e.clientY; autoRot=false;
+    document.getElementById('btnAuto').classList.remove('active');
+    document.getElementById('btnAuto').textContent='Auto Rotate';
+  });
+  window.addEventListener('mouseup', function(){ drag=false; });
+  canvas.addEventListener('click', function(e){
+    var r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top, hit=null;
+    buildPoints(VECTORS[currentVectorIndex]).pts.forEach(function(c){
+      var dx=cx-c.sx, dy=cy-c.sy;
+      if (Math.sqrt(dx*dx+dy*dy)<c.r*1.8+5) hit=c;
+    });
+    if (!hit) return;
+    lockedDotId=hit.id===lockedDotId?null:hit.id;
+  });
+  window.addEventListener('mousemove', function(e){
+    var r=canvas.getBoundingClientRect(); mx=e.clientX-r.left; my=e.clientY-r.top;
+    if (drag){ targetY+=(e.clientX-lx)*0.008; targetX-=(e.clientY-ly)*0.008; lx=e.clientX; ly=e.clientY; }
+  });
+  canvas.addEventListener('wheel', function(e){
+    zoom-=e.deltaY*0.25; zoom=Math.max(80,Math.min(900,zoom)); e.preventDefault();
+  }, { passive:false });
+
+  // ── INPUT: TOUCH ──
+  var tlx=0, tly=0, lastPinch=0;
+  canvas.addEventListener('touchstart', function(e){
+    var r=canvas.getBoundingClientRect();
+    tlx=e.touches[0].clientX; tly=e.touches[0].clientY;
+    mx=tlx-r.left; my=tly-r.top;
+    if (e.touches.length===2) lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    e.preventDefault();
+  }, { passive:false });
+  canvas.addEventListener('touchmove', function(e){
+    if (e.touches.length===2){
+      var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      zoom+=(d-lastPinch)*0.5; zoom=Math.max(80,Math.min(900,zoom)); lastPinch=d;
+    } else {
+      var r=canvas.getBoundingClientRect();
+      mx=e.touches[0].clientX-r.left; my=e.touches[0].clientY-r.top;
+      targetY+=(e.touches[0].clientX-tlx)*0.008; targetX-=(e.touches[0].clientY-tly)*0.008;
+      tlx=e.touches[0].clientX; tly=e.touches[0].clientY;
+    }
+    e.preventDefault();
+  }, { passive:false });
+  canvas.addEventListener('touchend', function(){
+    if (cursorDot) lockedDotId=cursorDot.id===lockedDotId?null:cursorDot.id;
+    mx=-9999; my=-9999;
+  });
+
+  // ── AUTO DOT CYCLE ──
+  setInterval(function() {
+    if (!autoRot) return;
+    var allDots = [];
+    VECTORS[currentVectorIndex].spaces.forEach(function(space) {
+      if (visibleSpaces[space.id] === false) return;
+      space.dots.forEach(function(dot) { allDots.push(dot.id); });
+    });
+    if (!allDots.length) return;
+    var candidates = allDots.filter(function(id) { return id !== lockedDotId; });
+    if (!candidates.length) candidates = allDots;
+    lockedDotId = candidates[Math.floor(Math.random() * candidates.length)];
+  }, 5000);
+
+  // ── INIT ──
+  VECTORS[0].spaces.forEach(function(s){ visibleSpaces[s.id]=true; });
+  lockedDotId=VECTORS[0].defaultDotId||null;
+  renderButtons();
+  updateVectorPanel(0);
+  function resizeCanvas() {
+    W = canvas.offsetWidth  || 800;
+    H = canvas.offsetHeight || 500;
+    canvas.width  = W;
+    canvas.height = H;
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+
+  requestAnimationFrame(function() {
+    resizeCanvas();
+    loop();
+  });
+
+})();
+</script>
+</body>
+</html>
